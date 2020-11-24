@@ -1,28 +1,31 @@
 #!/usr/bin/python3
 
+# bunch of stuff, I don't really know why I have 'os' imported
 import os
 import re
 import xml.etree.ElementTree as ET
 
-def getNumberFromEquation(equation):
-    pass
-
+# @brief: gets data from between curly braces ('{' and '}') as long as they are in seperate lines
+# it's all thanks to Nolla Games' extremely well done code <3
+# @param f: file object in read mode
 def getSpellBlock(f):
-    spell_data = ""
+    spell_data = []
     temp = ""
 
     while ( True ):
         temp = f.readline().strip()
-        if ( re.search(r'end', temp)):
+        # quits the loop when the read line indicates an end of the block
+        # - a simple "}," at the beginning of the line
+        if ( re.search(r'^},', temp)):
             break
         elif (re.search(r'.*=.*', temp)):
-            spell_data += temp + '\n'
+            spell_data.append(temp)
 
     return spell_data
 
 class Spell:
     # LOTS OF SHIT
-    # probably doesn't need to be initialized, but well. We'll see
+    # probably doesn't need to be initialized, but well. We'll see.
     def __init__(self):
         self.id = ""
         self.name = ""
@@ -40,6 +43,7 @@ class Spell:
                        0, # EXPLOSION DAMAGE
                        ]
         # list for all damage modifier types (if it = 0, won't be included)
+        # I don't think it needs that much 
         self.damage_modifier = [0, # IMPACT DAMAGE
                        0, # SLICE DAMAGE
                        0, # DRILL DAMAGE
@@ -47,14 +51,16 @@ class Spell:
                        0, # ELECTRICITY DAMAGE
                        0, # EXPLOSION DAMAGE
                        ]
+        self.radius = 0
         # radius for all damage types:
-        self.radius = [0, # IMPACT DAMAGE
-                       0, # SLICE DAMAGE
-                       0, # DRILL DAMAGE
-                       0, # FIRE DAMAGE
-                       0, # ELECTRICITY DAMAGE
-                       0, # EXPLOSION DAMAGE
-                       ]
+        # same here
+        # self.radius = [0, # IMPACT DAMAGE
+        #                0, # SLICE DAMAGE
+        #                0, # DRILL DAMAGE
+        #                0, # FIRE DAMAGE
+        #                0, # ELECTRICITY DAMAGE
+        #                0, # EXPLOSION DAMAGE
+        #                ]
         self.spread = 0
         self.speed_min = 0
         self.speed_max = 0
@@ -77,21 +83,38 @@ class Spell:
         print("Recharge time:", self.recharge_time)
         print('\n')
 
+    # @brief: parses a given Lua code to extract variables and their values
+    # @param spell_block: block extracted by getSpellBlock()
     def parseSpellBlock(self, spell_block):
+        # a regex for extracting strings - text between two (") quotes
         quotes_re = r'"([^"]*)"'
 
-        del spell_block[-1]
         keys = []
         values = []
+
         for item in spell_block:
             split = item.split("=")
 
-            keys.append(split[0].strip())
-            
             if ( re.search(r'[{"]+.*', split[1].strip()) ):
-                values.append( "".join(re.findall(quotes_re, split[1].strip())).lower() )
+                temp = re.findall(quotes_re, split[1].strip())
+
+                if ( temp ):
+                    temp[0] = temp[0].replace(" ", "")
+                    values.append("".join(temp[0]).lower())
+                    keys.append(split[0].strip())
+
+                # values.append( "".join(re.findall(quotes_re, split[1].strip())).lower() )
             else:
-                values.append( "".join(re.findall(r'([-+]?[0-9]*)[,]?', split[1].strip())).lower() )
+                temp = re.findall(r'([-+*/]? [0-9.]+)', split[1])
+
+                if ( temp ):
+                    # workaround for comments in Lua files
+                    # removes whitespace between the symbols for the int() function
+                    # I don't really know if I even WANT to convert it to ints
+                    temp[0] = temp[0].replace(" ", "")
+                    values.append("".join(temp[0]).lower())
+                    keys.append(split[0].strip())
+                # values.append( "".join(re.findall(r'[^a-z]([-+]? [0-9]+)', split[1].strip())).lower() )
 
         spell_dict = dict(zip(keys, values))
 
@@ -125,6 +148,7 @@ class Spell:
         if ( "c.critical_damage_chance" in spell_dict ):
             self.critical_chance_modifier = spell_dict["c.critical_damage_chance"]
 
+
         return 0
 
     def parseXML(self):
@@ -150,13 +174,10 @@ class Spell:
 
                 if ( "damage" in explosion_dict ):
                     self.damage[5] = float(explosion_dict["damage"])
-
                 if ( "explosion_radius" in explosion_dict ):
-                    self.radius[5] = float(explosion_dict["explosion_radius"])
-
+                    self.radius = float(explosion_dict["explosion_radius"])
                 if ( "hole_enabled" in explosion_dict ):
                     self.terrain_destroy = float(explosion_dict["hole_enabled"])
-
                 if ( "hole_destroy_liquid" in explosion_dict ):
                     self.liquid_destroy = float(explosion_dict["hole_destroy_liquid"])
 
@@ -165,13 +186,10 @@ class Spell:
 
                 if ( "slice" in damage_dict ):
                     self.damage[1] = float(damage_dict["slice"])*25
-
                 if ( "drill" in damage_dict ):
                     self.damage[2] = float(damage_dict["drill"])*25
-
                 if ( "fire" in damage_dict ):
                     self.damage[3] = float(damage_dict["fire"])*25
-
                 if ( "electricity" in damage_dict ):
                     self.damage[4] = float(damage_dict["electricity"])*25
 
@@ -202,7 +220,7 @@ with open(path_to_data + path_to_gun + file_name, "r") as f:
             comment = False
         elif ( re.search(r'\t{', temp ) and (not comment)):
             test = Spell()
-            spell_block = getSpellBlock(f).split('\n')
+            spell_block = getSpellBlock(f)#.split('\n')
 
             test.parseSpellBlock(spell_block)
             test.parseXML()
