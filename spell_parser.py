@@ -173,6 +173,8 @@ class Spell:
                     self.speed_min = float(stat_dict["speed_min"])
                 if ( "speed_max" in stat_dict ):
                     self.speed_max = float(stat_dict["speed_max"])
+                if ( "lifetime" in stat_dict ):
+                    self.lifetime = float(stat_dict["lifetime"])
 
             for explosion in root.iter("config_explosion"):
                 explosion_dict = explosion.attrib
@@ -198,6 +200,11 @@ class Spell:
                 if ( "electricity" in damage_dict ):
                     self.damage[4] = float(damage_dict["electricity"])*25
 
+            for lifetime in root.iter("LifetimeComponent"):
+                lifetime_dict = lifetime.attrib
+                if ( "lifetime" in lifetime_dict):
+                    self.lifetime = float(lifetime_dict["lifetime"])
+
             return 0
 
         return 1
@@ -206,11 +213,12 @@ class Spell:
         print(self.__dict__)
         print('\n')
 
-    def printToCSV(self, filename):
-        print(list(self.__dict__.keys()))
-        # with open(filename, 'a', newline="") as csvfile:
-        #     writer = csv.writer(csvfile)
-        #     writer.writerows(list(self.__dict__.keys()))
+def printToCSV(spell_container, filename):
+    with open(filename, 'w', newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(list(spell_container[0].__dict__.keys()))
+        for spell in spell_container:
+            writer.writerow(list(spell.__dict__.values()))
 
 
 path_to_data = "/home/gawenda/USB/Noita/"
@@ -218,6 +226,8 @@ path_to_gun = "data/scripts/gun/"
 file_name = "gun_actions.lua"
 
 i = 0
+
+spell_container = []
 
 with open(path_to_data + path_to_gun + file_name, "r") as f:
     comment = False
@@ -236,6 +246,9 @@ with open(path_to_data + path_to_gun + file_name, "r") as f:
 
             test.parseSpellBlock(spell_block)
             test.parseXML()
-            test.printToCSV("spells.csv")
+
+            spell_container.append(test)
 
         temp = f.readline()
+
+printToCSV(spell_container, "spells.csv")
