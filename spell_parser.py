@@ -68,8 +68,9 @@ class Spell:
         self.spread = None
         self.speed_min = None
         self.speed_max = None
-        self.lifetime = None
         self.speed_modifier = None
+        self.lifetime = None
+        self.lifetime_modifier = None
         self.cast_delay = None
         self.recharge_time = None
         self.spread_modifier = None
@@ -105,9 +106,10 @@ class Spell:
                 values.append(split[1].strip())
                 keys.append(split[0].strip())
             else:
-                temp = re.findall(r'([-+]? [0-9.]+)', split[1])
+                temp = re.findall(r'([-+*]? [0-9.]+)', split[1])
 
                 if ( temp ):
+                    temp[0] = temp[0].replace("*", "x")
                     # workaround for comments in Lua files
                     # removes whitespace between the symbols for the int() function
                     # I don't really know if I even WANT to convert it to ints
@@ -122,9 +124,9 @@ class Spell:
         if ( "id" in spell_dict ):
             self.id = spell_dict["id"]
         if ( "name" in spell_dict ):
-            self.name = spell_dict["name"]
+            self.name = spell_dict["name"].replace("$", "")
         if ( "description" in spell_dict):
-            self.description = spell_dict["description"]
+            self.description = spell_dict["description"].replace("$", "")
         if ( "related_projectiles" in spell_dict ):
             self.xml_file = spell_dict["related_projectiles"]
         if ( "type" in spell_dict ):
@@ -135,12 +137,14 @@ class Spell:
             self.uses = int(spell_dict["max_uses"])
         else:
             self.uses = -1
+        if ( "c.lifetime_add" in spell_dict):
+            self.lifetime_modifier = int(spell_dict["c.lifetime_add"])
         if ( "c.damage_projectile_add" in spell_dict ):
-            self.damage_modifier[0] = float(spell_dict["c.damage_projectile_add"])*25
+            self.damage_modifier[0] = round(float(spell_dict["c.damage_projectile_add"])*25)
         if ( "c.damage_explosion_add" in spell_dict ):
-            self.damage_modifier[5] = spell_dict["c.damage_explosion_add"]
+            self.damage_modifier[5] = round(float(spell_dict["c.damage_explosion_add"])*100)
         if ( "c.damage_electricity_add" in spell_dict ):
-            self.damage_modifier[4] = float(spell_dict["c.damage_electricity_add"])*25
+            self.damage_modifier[4] = round(float(spell_dict["c.damage_electricity_add"])*25)
         if ( "c.fire_rate_wait" in spell_dict ):
             self.cast_delay = round(float(spell_dict["c.fire_rate_wait"])/60, 2)
         if( "current_reload_time" in spell_dict ):
@@ -148,7 +152,7 @@ class Spell:
         if ( "c.spread_degrees" in spell_dict ):
             self.spread_modifier = float(spell_dict["c.spread_degrees"])
         if ( "c.speed_multiplier" in spell_dict ):
-            self.speed_multiplier = float(spell_dict["c.speed_multiplier"])
+            self.speed_modifier = spell_dict["c.speed_multiplier"]
         if ( "c.critical_damage_chance" in spell_dict ):
             self.critical_chance_modifier = int(spell_dict["c.critical_damage_chance"])
 
@@ -168,19 +172,19 @@ class Spell:
             for projectile in root.iter("ProjectileComponent"):
                 stat_dict = projectile.attrib
                 if ( "damage" in stat_dict ):
-                    self.damage[0] = float(stat_dict["damage"])*25
+                    self.damage[0] = round((float(stat_dict["damage"])*25))
                 if ( "speed_min" in stat_dict ):
-                    self.speed_min = float(stat_dict["speed_min"])
+                    self.speed_min = int(stat_dict["speed_min"])
                 if ( "speed_max" in stat_dict ):
-                    self.speed_max = float(stat_dict["speed_max"])
+                    self.speed_max = int(stat_dict["speed_max"])
                 if ( "lifetime" in stat_dict ):
-                    self.lifetime = float(stat_dict["lifetime"])
+                    self.lifetime = int(stat_dict["lifetime"])
 
             for explosion in root.iter("config_explosion"):
                 explosion_dict = explosion.attrib
 
                 if ( "damage" in explosion_dict ):
-                    self.damage[5] = float(explosion_dict["damage"])*100
+                    self.damage[5] = round(float(explosion_dict["damage"])*100)
                 if ( "explosion_radius" in explosion_dict ):
                     self.radius = float(explosion_dict["explosion_radius"])
                 if ( "hole_enabled" in explosion_dict ):
@@ -192,26 +196,62 @@ class Spell:
                 damage_dict = damage.attrib
 
                 if ( "slice" in damage_dict ):
-                    self.damage[1] = float(damage_dict["slice"])*25
+                    self.damage[1] = round(float(damage_dict["slice"])*25)
                 if ( "drill" in damage_dict ):
-                    self.damage[2] = float(damage_dict["drill"])*25
+                    self.damage[2] = round(float(damage_dict["drill"])*25)
                 if ( "fire" in damage_dict ):
-                    self.damage[3] = float(damage_dict["fire"])*25
+                    self.damage[3] = round(float(damage_dict["fire"])*25)
                 if ( "electricity" in damage_dict ):
-                    self.damage[4] = float(damage_dict["electricity"])*25
+                    self.damage[4] = round(float(damage_dict["electricity"])*25)
 
             for lifetime in root.iter("LifetimeComponent"):
                 lifetime_dict = lifetime.attrib
                 if ( "lifetime" in lifetime_dict):
-                    self.lifetime = float(lifetime_dict["lifetime"])
+                    self.lifetime = lifetime_dict["lifetime"]
 
             return 0
 
         return 1
 
+    def convertDamageToString(self):
+        types = [ "Impact",
+                 "Slice",
+                 "Drill",
+                 "Fire",
+                 "Electricity",
+                 "Explosion",
+                 ]
+
+        temp = ""
+        more_than_one = False
+        for i, value in enumerate(self.damage):
+            if ( value ):
+                temp += "{0}: {1}\n".format(types[i], value)
+
+        self.damage = temp.strip()
+
+        temp = ""
+
+        for i, value in enumerate(self.damage_modifier):
+            if ( value ):
+                temp += "{0}: {1}\n".format(types[i], value)
+
+        self.damage_modifier = temp.strip()
+
+    def fetchTranslations(self):
+        with open(path_to_data + path_to_translations, 'r', newline='') as f:
+            csvreader = csv.reader(f)
+            for row in csvreader:
+                if ( self.name == row[0] ):
+                    self.name = row[1]
+                elif ( self.description == row[0] ):
+                    self.description = row[1]
+
     def printInfo(self):
         print(self.__dict__)
         print('\n')
+
+
 
 def printToCSV(spell_container, filename):
     with open(filename, 'w', newline="") as csvfile:
@@ -221,6 +261,7 @@ def printToCSV(spell_container, filename):
             writer.writerow(list(spell.__dict__.values()))
 
 
+path_to_translations = "data/translations/common.csv"
 path_to_data = "/home/gawenda/USB/Noita/"
 path_to_gun = "data/scripts/gun/"
 file_name = "gun_actions.lua"
@@ -241,13 +282,15 @@ with open(path_to_data + path_to_gun + file_name, "r") as f:
         elif ( re.search(r'\]\]--+', temp)):
             comment = False
         elif ( re.search(r'\t{', temp ) and (not comment)):
-            test = Spell()
+            spell = Spell()
             spell_block = getSpellBlock(f)#.split('\n')
 
-            test.parseSpellBlock(spell_block)
-            test.parseXML()
+            spell.parseSpellBlock(spell_block)
+            spell.parseXML()
+            spell.convertDamageToString()
+            spell.fetchTranslations()
 
-            spell_container.append(test)
+            spell_container.append(spell)
 
         temp = f.readline()
 
