@@ -24,6 +24,8 @@ def getSpellBlock(f):
             break
         elif (re.search(r'.*=.*', temp)):
             spell_data.append(temp)
+        # elif (re.search(r'add_projectile', temp)):
+        #     spell_data.append(temp)
 
     return spell_data
 
@@ -91,31 +93,40 @@ class Spell:
         for item in spell_block:
             split = item.split("=")
 
-            if ( re.search(r'[{"]+.*', split[1].strip()) ):
-                temp = re.findall(quotes_re, split[1].strip())
+            try:
+                if ( re.search(r'[{"]+.*', split[1].strip()) ):
+                    temp = re.findall(quotes_re, split[1].strip())
 
-                if ( temp ):
-                    temp[0] = temp[0].replace(" ", "")
-                    values.append("".join(temp[0]).lower())
+                    if ( temp ):
+                        temp[0] = temp[0].replace(" ", "")
+                        values.append("".join(temp[0]).lower())
+                        keys.append(split[0].strip())
+
+                elif ( split[0].strip() == "type" ):
+                    # temp = re.findall(r'_([A-Z]+),', split[1].strip())
+                    # values.append(temp[0].lower())
+
+                    values.append(split[1].strip())
                     keys.append(split[0].strip())
+                else:
+                    temp = re.findall(r'([-+*]? [0-9.]+)', split[1])
+            except IndexError as e:
+                print (e)
+                print (split)
 
-            elif ( split[0].strip() == "type" ):
-                # temp = re.findall(r'_([A-Z]+),', split[1].strip())
-                # values.append(temp[0].lower())
+            try:
+                    if ( temp ):
+                        temp[0] = temp[0].replace("*", "x")
+                        # workaround for comments in Lua files
+                        # removes whitespace between the symbols for the int() function
+                        # I don't really know if I even WANT to convert it to ints
+                        temp[0] = temp[0].replace(" ", "")
+                        values.append("".join(temp[0]).lower())
+                        keys.append(split[0].strip())
+            except IndexError as e:
+                print (e)
+                print (split)
 
-                values.append(split[1].strip())
-                keys.append(split[0].strip())
-            else:
-                temp = re.findall(r'([-+*]? [0-9.]+)', split[1])
-
-                if ( temp ):
-                    temp[0] = temp[0].replace("*", "x")
-                    # workaround for comments in Lua files
-                    # removes whitespace between the symbols for the int() function
-                    # I don't really know if I even WANT to convert it to ints
-                    temp[0] = temp[0].replace(" ", "")
-                    values.append("".join(temp[0]).lower())
-                    keys.append(split[0].strip())
 
         spell_dict = dict(zip(keys, values))
 
@@ -163,7 +174,11 @@ class Spell:
             try:
                 root = ET.parse(path_to_data + self.xml_file)
             except ET.ParseError as e:
-                print ("duplicate attributes in:", self.xml_file)
+                print ("file:", self.xml_file)
+                print (e)
+                return 1
+            except IsADirectoryError as e:
+                print ("spell:", self.id)
                 print (e)
                 return 1
 
@@ -239,11 +254,13 @@ class Spell:
         self.damage_modifier = temp.strip()
 
     def fetchTranslations(self):
+        found_translation = False
         with open(path_to_data + path_to_translations, 'r', newline='') as f:
             csvreader = csv.reader(f)
             for row in csvreader:
                 if ( self.name == row[0] ):
                     self.name = row[1]
+                    found_translation = True
                 elif ( self.description == row[0] ):
                     self.description = row[1]
 
@@ -262,6 +279,7 @@ def printToCSV(spell_container, filename):
 
 
 path_to_translations = "data/translations/common.csv"
+path_to_dev_translations = "data/translations/common_dev.csv"
 path_to_data = "/home/gawenda/USB/Noita/"
 path_to_gun = "data/scripts/gun/"
 file_name = "gun_actions.lua"
