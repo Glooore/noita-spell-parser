@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
-# to be honest, it's not really that complicated
+# big TODO: add command line parameters (mostly path to the data directory and filename of the saved .CSV)
 
-# bunch of stuff, I don't really know why I have 'os' imported
-import os
+# to be honest, it's not really that complicated
+# but still a bit annoying to do
+# and needs a lots and lots of polish
+
 import csv
 import math
 import re
@@ -30,8 +32,7 @@ def getSpellBlock(f):
     return spell_data
 
 class Spell:
-    # LOTS OF SHIT
-    # probably doesn't need to be initialized, but well. We'll see.
+    # probably doesn't need to be initialized, but well. I'll see
     def __init__(self):
         self.id = None
         self.name = None
@@ -127,10 +128,9 @@ class Spell:
                 print (e)
                 print (split)
 
-
         spell_dict = dict(zip(keys, values))
 
-        #BUNCH OF IFS BECAUSE FUCK YOU
+        # bunch of ifs, because I can't think of a more elegant way
         # probably could've been done with dicts, but oh well
         if ( "id" in spell_dict ):
             self.id = spell_dict["id"]
@@ -169,21 +169,26 @@ class Spell:
 
         return 0
 
+    # @brief: parses XML file that is describing the projectile
     def parseXML(self):
         if ( self.xml_file ):
             try:
                 root = ET.parse(path_to_data + self.xml_file)
+            # TODO: find a way to delete duplicate lines
+            # probably a while loop that deletes the lines until it works?
             except ET.ParseError as e:
                 print ("file:", self.xml_file)
                 print (e)
                 return 1
+            # only the case when checking add_projectile() function instead of related_projectiles
+            # mostly happeninng with "Summon Egg" (because of the concatenation of strings in Lua)
+            # and "Fireworks", but I haven't looked into it yet
             except IsADirectoryError as e:
                 print ("spell:", self.id)
                 print (e)
                 return 1
 
-            # projectile_dict = {}
-
+            # more ifs
             for projectile in root.iter("ProjectileComponent"):
                 stat_dict = projectile.attrib
                 if ( "damage" in stat_dict ):
@@ -228,6 +233,8 @@ class Spell:
 
         return 1
 
+    # @brief: converts damage list into neat string:
+    # e.g. [1, 0, 0, 0, 0, 0] will be changed into "Impact: 1"
     def convertDamageToString(self):
         types = [ "Impact",
                  "Slice",
@@ -247,12 +254,15 @@ class Spell:
 
         temp = ""
 
+        # TODO: add modifier as a signed int (+1 instead of 1, -1, etc.)
         for i, value in enumerate(self.damage_modifier):
             if ( value ):
                 temp += "{0}: {1}\n".format(types[i], value)
 
         self.damage_modifier = temp.strip()
 
+    # @brief: checks translation files for proper strings and descriptions
+    # VERY INEFICIENT
     def fetchTranslations(self):
         found_translation = False
         with open(path_to_data + path_to_translations, 'r', newline='') as f:
@@ -264,12 +274,16 @@ class Spell:
                 elif ( self.description == row[0] ):
                     self.description = row[1]
 
+    # @brief: was used when debugging
     def printInfo(self):
         print(self.__dict__)
         print('\n')
 
 
 
+# @brief: saves all the spell data into a CSV file
+# @param spell_container: list of Spell objects
+# @param filename: where to save
 def printToCSV(spell_container, filename):
     with open(filename, 'w', newline="") as csvfile:
         writer = csv.writer(csvfile)
@@ -289,11 +303,14 @@ i = 0
 spell_container = []
 
 with open(path_to_data + path_to_gun + file_name, "r") as f:
+    # indicates a comment block
     comment = False
+    # used for initialization
     temp = f.readline()
     temp = f.readline()
     temp = f.readline()
 
+    # main loop
     while ( temp != "" ):
         if ( re.search(r'--\[\[', temp )):
             comment = True
