@@ -12,3 +12,4 @@ Run the script with `python3 spell_parser.py`
 
 - add in command line parameters
 - add removing duplicate attributes in XML files (so a bunch of spells work)
+- parse add_projectile() function instead of getting the XML file from `related_projectiles` variable in Lua files
