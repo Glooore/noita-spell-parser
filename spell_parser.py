@@ -100,15 +100,17 @@ class Spell:
 
                     if ( temp ):
                         temp[0] = temp[0].replace(" ", "")
-                        values.append("".join(temp[0]).lower())
-                        keys.append(split[0].strip())
+
+                        # values.append("".join(temp[0]).lower())
+                        # keys.append(split[0].strip())
 
                 elif ( split[0].strip() == "type" ):
-                    # temp = re.findall(r'_([A-Z]+),', split[1].strip())
+                    temp = re.findall(r'([A-Z_]+),', split[1].strip())
+
                     # values.append(temp[0].lower())
 
-                    values.append(split[1].strip())
-                    keys.append(split[0].strip())
+                    # values.append(split[1].strip())
+                    # keys.append(split[0].strip())
                 else:
                     temp = re.findall(r'([-+*]? [0-9.]+)', split[1])
             except IndexError as e:
@@ -116,14 +118,14 @@ class Spell:
                 print (split)
 
             try:
-                    if ( temp ):
-                        temp[0] = temp[0].replace("*", "x")
-                        # workaround for comments in Lua files
-                        # removes whitespace between the symbols for the int() function
-                        # I don't really know if I even WANT to convert it to ints
-                        temp[0] = temp[0].replace(" ", "")
-                        values.append("".join(temp[0]).lower())
-                        keys.append(split[0].strip())
+                if ( temp ):
+                    temp[0] = temp[0].replace("*", "x")
+                    # workaround for comments in Lua files
+                    # removes whitespace between the symbols for the int() function
+                    # I don't really know if I even WANT to convert it to ints
+                    temp[0] = temp[0].replace(" ", "")
+                    values.append("".join(temp[0]).lower())
+                    keys.append(split[0].strip())
             except IndexError as e:
                 print (e)
                 print (split)
@@ -164,8 +166,8 @@ class Spell:
             self.spread_modifier = float(spell_dict["c.spread_degrees"])
         if ( "c.speed_multiplier" in spell_dict ):
             self.speed_modifier = spell_dict["c.speed_multiplier"]
-        if ( "c.critical_damage_chance" in spell_dict ):
-            self.critical_chance_modifier = int(spell_dict["c.critical_damage_chance"])
+        if ( "c.damage_critical_chance" in spell_dict ):
+            self.critical_chance_modifier = str(spell_dict["c.damage_critical_chance"]) + "%"
 
         return 0
 
@@ -193,6 +195,8 @@ class Spell:
                 stat_dict = projectile.attrib
                 if ( "damage" in stat_dict ):
                     self.damage[0] = round((float(stat_dict["damage"])*25))
+                if ( "direction_random_rad" in stat_dict):
+                    self.spread = round(float(stat_dict["direction_random_rad"])*180/math.pi, 1)
                 if ( "speed_min" in stat_dict ):
                     self.speed_min = int(stat_dict["speed_min"])
                 if ( "speed_max" in stat_dict ):
