@@ -305,7 +305,7 @@ class Spell:
     # VERY INEFICIENT
     def fetchTranslations(self):
         found_translation = False
-        with open(path_to_data + path_to_translations, 'r', newline='') as f:
+        with open(path_to_translations + "common.csv", 'r', newline='') as f:
             csvreader = csv.reader(f)
             for row in csvreader:
                 if ( self.name == row[0] ):
@@ -333,7 +333,7 @@ def printToCSV(spell_container, filename):
 
 
 # TODO: either ask for two paths or include two prompts 
-path_to_translations = "data/translations/common.csv"
+path_to_translations = "/home/gawenda/USB/Noita/data/translations/"
 path_to_dev_translations = "data/translations/common_dev.csv"
 path_to_data = "/home/gawenda/USB/Noita/"
 path_to_gun = "data/scripts/gun/"
@@ -342,7 +342,7 @@ file_name = "gun_actions.lua"
 translations_exist = False
 
 try:
-    with open(path_to_data + path_to_translations, 'r', newline='') as f:
+    with open(path_to_translations + "common.csv", 'r', newline='') as f:
         translations_exist = True
 except FileNotFoundError as e:
     print("The translations file has not been found.")
