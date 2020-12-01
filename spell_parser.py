@@ -299,6 +299,7 @@ def printToCSV(spell_container, filename):
             writer.writerow(list(spell.__dict__.values()))
 
 
+# TODO: either ask for two paths or include two prompts 
 path_to_translations = "data/translations/common.csv"
 path_to_dev_translations = "data/translations/common_dev.csv"
 path_to_data = "/home/gawenda/USB/Noita/"
