@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# not in project, but: get SSH pushing to work
+
 # big TODO: add command line parameters (mostly path to the data directory and filename of the saved .CSV)
 #           or a graphical prompt
 
