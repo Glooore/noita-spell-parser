@@ -4,7 +4,7 @@ This is a simple script for going through Notia's Lua files to extract spell dat
 
 ## How to use:
 
-Open the script in your editor of choice and change `path_to_data` to a directory containing an unpacked `data` folder (usually `C:\Users\<user name>\AppData\LocalLow\Nolla_Games_Noita\data\ `path_to_translations` to a directory containing `common.csv` file (usually `C:\ProgramFiles\Steam\steamapps\common\Noita\data\translations\`). 
+Open the script in your editor of choice and change `path_to_data` to a directory containing an unpacked `data` folder (usually `C:\Users\<user name>\AppData\LocalLow\Nolla_Games_Noita\data\ `path_to_translations` to a directory containing `common.csv file (usually `C:\ProgramFiles\Steam\steamapps\common\Noita\data\translations\`). 
 You can also change in which file the data will be saved (default: `./spells.csv`).
 
 Run the script with `python3 spell_parser.py`
