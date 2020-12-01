@@ -29,8 +29,8 @@ def getSpellBlock(f):
             break
         elif (re.search(r'.*=.*', temp)):
             spell_data.append(temp)
-        # elif (re.search(r'add_projectile', temp)):
-        #     spell_data.append(temp)
+        elif (re.search(r'add_projectile', temp)):
+            spell_data.append(temp)
 
     return spell_data
 
@@ -41,6 +41,7 @@ class Spell:
         self.name = None
         self.description = None
         self.xml_file = None
+        self.backup_xml_file = None
         self.type = None
         self.mana_cost = None
         self.uses = None
@@ -98,22 +99,16 @@ class Spell:
             split = item.split("=")
 
             try:
-                if ( re.search(r'[{"]+.*', split[1].strip()) ):
+                if ( re.search(r'add_projectile', item.strip()) ):
+                    temp = re.findall(quotes_re, item.strip())
+                    self.xml_file = "".join(temp)
+                    continue
+                elif ( re.search(r'[{"]+.*,', split[1].strip()) ):
                     temp = re.findall(quotes_re, split[1].strip())
 
-                    if ( temp ):
-                        temp[0] = temp[0].replace(" ", "")
-
-                        # values.append("".join(temp[0]).lower())
-                        # keys.append(split[0].strip())
-
-                elif ( split[0].strip() == "type" ):
+                elif ( re.search(r'^type', split[0].strip()) ):
                     temp = re.findall(r'([A-Z_]+),', split[1].strip())
 
-                    # values.append(temp[0].lower())
-
-                    # values.append(split[1].strip())
-                    # keys.append(split[0].strip())
                 else:
                     temp = re.findall(r'([-+*]? [0-9.]+)', split[1])
             except IndexError as e:
@@ -144,7 +139,7 @@ class Spell:
         if ( "description" in spell_dict):
             self.description = spell_dict["description"].replace("$", "")
         if ( "related_projectiles" in spell_dict ):
-            self.xml_file = spell_dict["related_projectiles"]
+            self.backup_xml_file = spell_dict["related_projectiles"]
         if ( "type" in spell_dict ):
             self.type = spell_dict["type"]
         if ( "mana" in spell_dict ):
@@ -152,6 +147,7 @@ class Spell:
         if ( "max_uses" in spell_dict ):
             self.uses = int(spell_dict["max_uses"])
         else:
+            # -1 uses, as in - infinity uses
             self.uses = -1
         if ( "c.lifetime_add" in spell_dict):
             self.lifetime_modifier = int(spell_dict["c.lifetime_add"])
@@ -181,6 +177,7 @@ class Spell:
                 root = ET.parse(path_to_data + self.xml_file)
             # TODO: find a way to delete duplicate lines
             # probably a while loop that deletes the lines until it works?
+
             except ET.ParseError as e:
                 print ("file:", self.xml_file)
                 print (e)
@@ -188,10 +185,46 @@ class Spell:
             # only the case when checking add_projectile() function instead of related_projectiles
             # mostly happeninng with "Summon Egg" (because of the concatenation of strings in Lua)
             # and "Fireworks", but I haven't looked into it yet
+
             except IsADirectoryError as e:
-                print ("spell:", self.id)
-                print (e)
-                return 1
+                print(e)
+                print ("The path points to a directory. Trying a secondary path.")
+
+                try:
+                    root = ET.parse(path_to_data + self.backup_xml_file)
+                except IsADirectoryError as e:
+                    print(e)
+                    print ("The secondary path points to a directory. Skipping spell:", self.id)
+                    return 1
+                except FileNotFoundError as e:
+                    print(e)
+                    print("The secondary file does not exist. Skipping spell:", self.id)
+                    return 1
+                except:
+                    print("Secondary path doesn't work. Skipping spell:", self.id)
+                    return 1
+
+            except FileNotFoundError as e:
+                print(e)
+                print("The file does not exist. Trying a secondary path")
+
+                try:
+                    root = ET.parse(path_to_data + self.backup_xml_file)
+                except IsADirectoryError as e:
+                    print(e)
+                    print ("The secondary path points to a directory. Skipping spell:", self.id)
+                    return 1
+                except FileNotFoundError as e:
+                    print(e)
+                    print("The secondary file does not exist. Skipping spell:", self.id)
+                    return 1
+                except:
+                    print("Secondary path doesn't work. Skipping spell:", self.id)
+                    return 1
+
+            except:
+                print ("Unknown error. Trying a secondary path.")
+
 
             # more ifs
             for projectile in root.iter("ProjectileComponent"):
@@ -306,6 +339,14 @@ path_to_data = "/home/gawenda/USB/Noita/"
 path_to_gun = "data/scripts/gun/"
 file_name = "gun_actions.lua"
 
+translations_exist = False
+
+try:
+    with open(path_to_data + path_to_translations, 'r', newline='') as f:
+        translations_exist = True
+except FileNotFoundError as e:
+    print("The translations file has not been found.")
+
 i = 0
 
 spell_container = []
@@ -331,7 +372,8 @@ with open(path_to_data + path_to_gun + file_name, "r") as f:
             spell.parseSpellBlock(spell_block)
             spell.parseXML()
             spell.convertDamageToString()
-            spell.fetchTranslations()
+            if ( translations_exist ):
+                spell.fetchTranslations()
 
             spell_container.append(spell)
 
