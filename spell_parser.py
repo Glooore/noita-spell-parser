@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 # big TODO: add command line parameters (mostly path to the data directory and filename of the saved .CSV)
+#           or a graphical prompt
 
 # to be honest, it's not really that complicated
 # but still a bit annoying to do
